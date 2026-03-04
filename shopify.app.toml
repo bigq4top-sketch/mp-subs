@@ -19,20 +19,10 @@ api_version = "2026-04"
   topics = [ "app/uninstalled" ]
   uri = "/webhooks/app/uninstalled"
 
-  [[webhooks.subscriptions]]
-  topics = [ "customers/data_request" ]
-  uri = "/webhooks/customers/data_request"
-  compliance_topics = [ "customers/data_request" ]
-
-  [[webhooks.subscriptions]]
-  topics = [ "customers/redact" ]
-  uri = "/webhooks/customers/redact"
-  compliance_topics = [ "customers/redact" ]
-
-  [[webhooks.subscriptions]]
-  topics = [ "shop/redact" ]
-  uri = "/webhooks/shop/redact"
-  compliance_topics = [ "shop/redact" ]
+[privacy_compliance]
+customer_data_request_url = "https://mp-subs-production.up.railway.app/webhooks/customers/data_request"
+customer_deletion_url = "https://mp-subs-production.up.railway.app/webhooks/customers/redact"
+shop_deletion_url = "https://mp-subs-production.up.railway.app/webhooks/shop/redact"
 
 [access_scopes]
 # Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
