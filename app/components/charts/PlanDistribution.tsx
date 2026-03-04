@@ -7,53 +7,65 @@ import {
   ResponsiveContainer,
   Cell,
 } from "recharts";
-import { Card, BlockStack, Text } from "@shopify/polaris";
 
 interface PlanDistributionProps {
   data: { name: string; count: number }[];
 }
 
-const COLORS = ["#2C6ECB", "#5BA5F9", "#8FBBEA", "#B4D5FF", "#D4E6F9"];
+const COLORS = ["#3b82f6", "#8b5cf6", "#06b6d4", "#f59e0b", "#ec4899"];
+
+function CustomTooltip({ active, payload }: { active?: boolean; payload?: Array<{ value: number; payload: { name: string } }> }) {
+  if (!active || !payload?.length) return null;
+  return (
+    <div className="custom-tooltip">
+      <div className="custom-tooltip-label">{payload[0].payload.name}</div>
+      <div className="custom-tooltip-value">{payload[0].value} suscripciones</div>
+    </div>
+  );
+}
 
 export function PlanDistribution({ data }: PlanDistributionProps) {
-  if (data.length === 0) {
-    return (
-      <Card>
-        <BlockStack gap="400">
-          <Text as="h2" variant="headingMd">Suscripciones por plan</Text>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: 200 }}>
-            <Text as="p" variant="bodyMd" tone="subdued">Sin datos</Text>
-          </div>
-        </BlockStack>
-      </Card>
-    );
-  }
-
   return (
-    <Card>
-      <BlockStack gap="400">
-        <Text as="h2" variant="headingMd">Suscripciones por plan</Text>
-        <div style={{ width: "100%", height: 250 }}>
+    <div className="chart-card">
+      <div className="chart-header">
+        <div>
+          <div className="chart-title">Suscripciones por plan</div>
+          <div className="chart-subtitle">Solo planes activos</div>
+        </div>
+      </div>
+
+      {data.length === 0 ? (
+        <div className="chart-empty">
+          <div className="chart-empty-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M18 20V10" /><path d="M12 20V4" /><path d="M6 20v-6" />
+            </svg>
+          </div>
+          <div className="chart-empty-text">
+            Sin suscripciones activas por plan
+          </div>
+        </div>
+      ) : (
+        <div style={{ width: "100%", height: Math.max(200, data.length * 52) }}>
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={data} layout="vertical" margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
-              <XAxis type="number" tick={{ fontSize: 12, fill: "#6b7280" }} axisLine={false} tickLine={false} />
+            <BarChart data={data} layout="vertical" margin={{ top: 0, right: 20, left: 0, bottom: 0 }} barCategoryGap="28%">
+              <XAxis
+                type="number"
+                tick={{ fontSize: 12, fill: "var(--p-color-text-subdued, #9ca3af)" }}
+                axisLine={false}
+                tickLine={false}
+                allowDecimals={false}
+              />
               <YAxis
                 dataKey="name"
                 type="category"
-                tick={{ fontSize: 12, fill: "#6b7280" }}
+                tick={{ fontSize: 13, fill: "var(--p-color-text, #111)", fontWeight: 500 }}
                 axisLine={false}
                 tickLine={false}
-                width={120}
+                width={110}
               />
-              <Tooltip
-                formatter={(value: number | undefined) => [value ?? 0, "Suscripciones"]}
-                contentStyle={{
-                  borderRadius: 8,
-                  border: "1px solid #e5e7eb",
-                  boxShadow: "0 4px 6px -1px rgba(0,0,0,0.1)",
-                }}
-              />
-              <Bar dataKey="count" radius={[0, 4, 4, 0]} maxBarSize={28}>
+              <Tooltip content={<CustomTooltip />} cursor={{ fill: "var(--p-color-bg-surface-secondary, #f9fafb)", radius: 4 }} />
+              <Bar dataKey="count" radius={[0, 6, 6, 0]} maxBarSize={24}>
                 {data.map((_, index) => (
                   <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                 ))}
@@ -61,7 +73,7 @@ export function PlanDistribution({ data }: PlanDistributionProps) {
             </BarChart>
           </ResponsiveContainer>
         </div>
-      </BlockStack>
-    </Card>
+      )}
+    </div>
   );
 }

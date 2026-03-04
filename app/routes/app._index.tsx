@@ -19,6 +19,7 @@ import { RevenueChart } from "../components/charts/RevenueChart";
 import { PlanDistribution } from "../components/charts/PlanDistribution";
 import { StatusDonut } from "../components/charts/StatusDonut";
 import { ActivityFeed } from "../components/charts/ActivityFeed";
+import "../styles/dashboard.css";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { session } = await authenticate.admin(request);
@@ -83,17 +84,16 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
   const isConfigured = !!settings?.mpAccessToken;
 
-  // KPI: MRR = sum of plan amounts for authorized subs
+  // KPI: MRR
   const activeSubs = allSubscriptions.filter((s) => s.status === "authorized");
   const mrr = activeSubs.reduce((sum, s) => sum + s.plan.amount, 0);
 
-  // MRR del mes anterior (estimado: activas al inicio del mes * precio promedio)
   const subsAtStartOfMonth = allSubscriptions.filter(
     (s) => s.createdAt < firstDayThisMonth && s.status === "authorized",
   );
   const previousMrr = subsAtStartOfMonth.reduce((sum, s) => sum + s.plan.amount, 0);
 
-  // Churn rate = cancelled this month / active at start of month
+  // Churn
   const activeAtStartOfMonth = allSubscriptions.filter(
     (s) =>
       s.createdAt < firstDayThisMonth &&
@@ -104,10 +104,10 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       ? (cancelledThisMonth / activeAtStartOfMonth) * 100
       : 0;
 
-  // Revenue total
+  // Revenue
   const totalRevenue = paymentEvents.reduce((sum, e) => sum + (e.amount || 0), 0);
 
-  // Revenue por mes (últimos 6 meses)
+  // Revenue por mes (6 meses)
   const revenueByMonth: { month: string; revenue: number }[] = [];
   for (let i = 5; i >= 0; i--) {
     const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
@@ -115,18 +115,17 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     const monthRevenue = paymentEvents
       .filter((e) => e.createdAt >= d && e.createdAt < nextD)
       .reduce((sum, e) => sum + (e.amount || 0), 0);
-    const monthLabel = d.toLocaleDateString("es-AR", { month: "short", year: "2-digit" });
+    const monthLabel = d.toLocaleDateString("es-AR", { month: "short" }).replace(".", "");
     revenueByMonth.push({ month: monthLabel, revenue: monthRevenue });
   }
 
   // Subs por plan
   const planCounts: Record<string, { name: string; count: number }> = {};
   for (const sub of activeSubs) {
-    const key = sub.planId;
-    if (!planCounts[key]) {
-      planCounts[key] = { name: sub.plan.name, count: 0 };
+    if (!planCounts[sub.planId]) {
+      planCounts[sub.planId] = { name: sub.plan.name, count: 0 };
     }
-    planCounts[key].count++;
+    planCounts[sub.planId].count++;
   }
   const subsByPlan = Object.values(planCounts).sort((a, b) => b.count - a.count);
 
@@ -136,17 +135,19 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     statusCounts[sub.status] = (statusCounts[sub.status] || 0) + 1;
   }
   const subsByStatus = [
-    { name: "Activas", value: statusCounts["authorized"] || 0, color: "#22c55e" },
+    { name: "Activas", value: statusCounts["authorized"] || 0, color: "#10b981" },
     { name: "Pendientes", value: statusCounts["pending"] || 0, color: "#f59e0b" },
     { name: "Canceladas", value: statusCounts["cancelled"] || 0, color: "#ef4444" },
-    { name: "Pausadas", value: statusCounts["paused"] || 0, color: "#3b82f6" },
+    { name: "Pausadas", value: statusCounts["paused"] || 0, color: "#6366f1" },
   ];
 
   // Top ciudades
   const cityCounts: Record<string, number> = {};
-  for (const sub of activeSubs) {
-    const city = sub.shippingCity || "Sin ciudad";
-    cityCounts[city] = (cityCounts[city] || 0) + 1;
+  for (const sub of allSubscriptions) {
+    const city = sub.shippingCity?.trim();
+    if (city) {
+      cityCounts[city] = (cityCounts[city] || 0) + 1;
+    }
   }
   const topCities = Object.entries(cityCounts)
     .map(([city, count]) => ({ city, count }))
@@ -243,6 +244,7 @@ export default function Dashboard() {
     newThisMonth,
     newLastMonth,
     churnRate,
+    totalRevenue,
     revenueByMonth,
     subsByPlan,
     subsByStatus,
@@ -257,7 +259,7 @@ export default function Dashboard() {
       <TitleBar title="MP Suscripciones" />
       <BlockStack gap="500">
         {!isConfigured && (
-          <Banner tone="warning" action={{ content: "Ir a Settings", url: "/app/settings" }}>
+          <Banner tone="warning" action={{ content: "Configurar", url: "/app/settings" }}>
             <p>
               MercadoPago no esta configurado. Ingresa tus credenciales para
               empezar a recibir suscripciones.
@@ -265,24 +267,31 @@ export default function Dashboard() {
           </Banner>
         )}
 
-        {/* Sección 1: KPI Cards */}
+        {/* KPI Cards */}
         <InlineGrid columns={{ xs: 1, sm: 2, lg: 4 }} gap="400">
           <KpiCard
             title="MRR"
             value={mrr}
             format="currency"
+            accent="green"
+            icon="revenue"
             currentValue={mrr}
             previousValue={previousMrr}
+            subtitle="por mes"
           />
           <KpiCard
             title="Suscripciones activas"
             value={activeSubsCount}
+            accent="blue"
+            icon="users"
             currentValue={activeSubsCount}
             previousValue={previousActiveCount}
           />
           <KpiCard
             title="Nuevas este mes"
             value={newThisMonth}
+            accent="purple"
+            icon="new"
             currentValue={newThisMonth}
             previousValue={newLastMonth}
           />
@@ -290,113 +299,119 @@ export default function Dashboard() {
             title="Tasa de cancelacion"
             value={churnRate}
             format="percent"
+            accent="amber"
+            icon="churn"
             invertTrend
+            subtitle={churnRate === 0 ? "sin cancelaciones" : undefined}
           />
         </InlineGrid>
 
-        {/* Sección 2: Gráfico de revenue */}
-        <RevenueChart data={revenueByMonth} />
+        {/* Revenue Chart */}
+        <RevenueChart data={revenueByMonth} totalRevenue={totalRevenue} />
 
-        {/* Sección 3: Charts secundarios */}
+        {/* Charts secundarios */}
         <InlineGrid columns={{ xs: 1, md: 2 }} gap="400">
           <PlanDistribution data={subsByPlan} />
           <StatusDonut data={subsByStatus} />
         </InlineGrid>
 
-        {/* Sección 4: Ciudades + Actividad */}
+        {/* Ciudades + Actividad */}
         <InlineGrid columns={{ xs: 1, md: 2 }} gap="400">
           {/* Top ciudades */}
-          <Card>
-            <BlockStack gap="400">
-              <Text as="h2" variant="headingMd">Top ciudades</Text>
-              {topCities.length === 0 ? (
-                <Text as="p" variant="bodyMd" tone="subdued">Sin datos de ubicacion</Text>
-              ) : (
-                <BlockStack gap="300">
-                  {topCities.map((c) => (
-                    <div key={c.city}>
-                      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-                        <Text as="span" variant="bodySm">{c.city}</Text>
-                        <Text as="span" variant="bodySm" tone="subdued">{c.count}</Text>
-                      </div>
-                      <div
-                        style={{
-                          height: 6,
-                          borderRadius: 3,
-                          backgroundColor: "#e5e7eb",
-                          overflow: "hidden",
-                        }}
-                      >
-                        <div
-                          style={{
-                            height: "100%",
-                            width: `${(c.count / maxCityCount) * 100}%`,
-                            backgroundColor: "#2C6ECB",
-                            borderRadius: 3,
-                          }}
-                        />
+          <div className="chart-card">
+            <div className="chart-header">
+              <div>
+                <div className="chart-title">Top ciudades</div>
+                <div className="chart-subtitle">Por cantidad de suscriptores</div>
+              </div>
+            </div>
+            {topCities.length === 0 ? (
+              <div className="chart-empty">
+                <div className="chart-empty-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" />
+                  </svg>
+                </div>
+                <div className="chart-empty-text">Sin datos de ubicacion</div>
+              </div>
+            ) : (
+              <BlockStack gap="400">
+                {topCities.map((c, i) => (
+                  <div key={c.city} className="city-row">
+                    <div className="city-rank">{i + 1}</div>
+                    <div className="city-info">
+                      <div className="city-name">{c.city}</div>
+                      <div className="city-bar-track">
+                        <div className="city-bar-fill" style={{ width: `${(c.count / maxCityCount) * 100}%` }} />
                       </div>
                     </div>
-                  ))}
-                </BlockStack>
-              )}
-            </BlockStack>
-          </Card>
+                    <div className="city-count">{c.count}</div>
+                  </div>
+                ))}
+              </BlockStack>
+            )}
+          </div>
 
           {/* Actividad reciente */}
           <ActivityFeed events={activityFeed} />
         </InlineGrid>
 
-        {/* Sección 5: Tabla de suscripciones recientes */}
+        {/* Tabla de suscripciones */}
         <Card>
           <BlockStack gap="400">
             <Text as="h2" variant="headingMd">Suscripciones recientes</Text>
-              {recentSubs.length === 0 ? (
-                <Text as="p" variant="bodyMd" tone="subdued">
-                  No hay suscripciones todavia.
-                </Text>
-              ) : (
-                <IndexTable
-                  itemCount={recentSubs.length}
-                  headings={[
-                    { title: "Cliente" },
-                    { title: "Plan" },
-                    { title: "Monto" },
-                    { title: "Ciudad" },
-                    { title: "Estado" },
-                    { title: "Fecha" },
-                  ]}
-                  selectable={false}
-                >
-                  {recentSubs.map((sub, index) => (
-                    <IndexTable.Row id={sub.id} key={sub.id} position={index}>
-                      <IndexTable.Cell>
-                        <BlockStack gap="100">
-                          <Text variant="bodyMd" fontWeight="bold" as="span">
-                            {sub.payerName || sub.payerEmail}
+            {recentSubs.length === 0 ? (
+              <div className="chart-empty">
+                <div className="chart-empty-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" />
+                    <path d="M22 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                  </svg>
+                </div>
+                <div className="chart-empty-text">No hay suscripciones todavia</div>
+              </div>
+            ) : (
+              <IndexTable
+                itemCount={recentSubs.length}
+                headings={[
+                  { title: "Cliente" },
+                  { title: "Plan" },
+                  { title: "Monto" },
+                  { title: "Ciudad" },
+                  { title: "Estado" },
+                  { title: "Fecha" },
+                ]}
+                selectable={false}
+              >
+                {recentSubs.map((sub, index) => (
+                  <IndexTable.Row id={sub.id} key={sub.id} position={index}>
+                    <IndexTable.Cell>
+                      <BlockStack gap="100">
+                        <Text variant="bodyMd" fontWeight="bold" as="span">
+                          {sub.payerName || sub.payerEmail}
+                        </Text>
+                        {sub.payerName && (
+                          <Text variant="bodySm" tone="subdued" as="span">
+                            {sub.payerEmail}
                           </Text>
-                          {sub.payerName && (
-                            <Text variant="bodySm" tone="subdued" as="span">
-                              {sub.payerEmail}
-                            </Text>
-                          )}
-                        </BlockStack>
-                      </IndexTable.Cell>
-                      <IndexTable.Cell>{sub.planName}</IndexTable.Cell>
-                      <IndexTable.Cell>
-                        ${sub.amount.toLocaleString()} {sub.currency}
-                      </IndexTable.Cell>
-                      <IndexTable.Cell>{sub.shippingCity || "-"}</IndexTable.Cell>
-                      <IndexTable.Cell>
-                        <StatusBadge status={sub.status} />
-                      </IndexTable.Cell>
-                      <IndexTable.Cell>
-                        {new Date(sub.createdAt).toLocaleDateString("es-AR")}
-                      </IndexTable.Cell>
-                    </IndexTable.Row>
-                  ))}
-                </IndexTable>
-              )}
+                        )}
+                      </BlockStack>
+                    </IndexTable.Cell>
+                    <IndexTable.Cell>{sub.planName}</IndexTable.Cell>
+                    <IndexTable.Cell>
+                      ${sub.amount.toLocaleString()} {sub.currency}
+                    </IndexTable.Cell>
+                    <IndexTable.Cell>{sub.shippingCity || "—"}</IndexTable.Cell>
+                    <IndexTable.Cell>
+                      <StatusBadge status={sub.status} />
+                    </IndexTable.Cell>
+                    <IndexTable.Cell>
+                      {new Date(sub.createdAt).toLocaleDateString("es-AR")}
+                    </IndexTable.Cell>
+                  </IndexTable.Row>
+                ))}
+              </IndexTable>
+            )}
           </BlockStack>
         </Card>
       </BlockStack>

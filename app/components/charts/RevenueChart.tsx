@@ -7,73 +7,93 @@ import {
   ResponsiveContainer,
   CartesianGrid,
 } from "recharts";
-import { Card, BlockStack, Text } from "@shopify/polaris";
 
 interface RevenueChartProps {
   data: { month: string; revenue: number }[];
+  totalRevenue: number;
 }
 
-export function RevenueChart({ data }: RevenueChartProps) {
-  if (data.length === 0) {
-    return (
-      <Card>
-        <BlockStack gap="400">
-          <Text as="h2" variant="headingMd">Ingresos mensuales</Text>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: 200 }}>
-            <Text as="p" variant="bodyMd" tone="subdued">
-              Sin datos de ingresos todavia
-            </Text>
-          </div>
-        </BlockStack>
-      </Card>
-    );
-  }
+function CustomTooltip({ active, payload, label }: { active?: boolean; payload?: Array<{ value: number }>; label?: string }) {
+  if (!active || !payload?.length) return null;
+  return (
+    <div className="custom-tooltip">
+      <div className="custom-tooltip-label">{label}</div>
+      <div className="custom-tooltip-value">${(payload[0].value ?? 0).toLocaleString("es-AR")}</div>
+    </div>
+  );
+}
+
+export function RevenueChart({ data, totalRevenue }: RevenueChartProps) {
+  const hasData = data.some((d) => d.revenue > 0);
 
   return (
-    <Card>
-      <BlockStack gap="400">
-        <Text as="h2" variant="headingMd">Ingresos mensuales</Text>
-        <div style={{ width: "100%", height: 300 }}>
+    <div className="chart-card">
+      <div className="chart-header">
+        <div>
+          <div className="chart-title">Ingresos mensuales</div>
+          <div className="chart-subtitle">Ultimos 6 meses</div>
+        </div>
+        <div style={{ textAlign: "right" }}>
+          <div style={{ fontSize: 20, fontWeight: 700, color: "var(--p-color-text, #111)" }}>
+            ${totalRevenue.toLocaleString("es-AR")}
+          </div>
+          <div className="chart-subtitle">total acumulado</div>
+        </div>
+      </div>
+
+      {!hasData ? (
+        <div className="chart-empty">
+          <div className="chart-empty-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="3" width="18" height="18" rx="2" /><path d="M3 15l4-4 4 4 4-8 6 8" />
+            </svg>
+          </div>
+          <div className="chart-empty-text">
+            Los ingresos se mostraran aqui<br />cuando se procesen pagos
+          </div>
+        </div>
+      ) : (
+        <div style={{ width: "100%", height: 280 }}>
           <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={data} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
+            <AreaChart data={data} margin={{ top: 5, right: 10, left: -10, bottom: 0 }}>
               <defs>
-                <linearGradient id="revenueGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#2C6ECB" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="#2C6ECB" stopOpacity={0} />
+                <linearGradient id="revenueGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#3b82f6" stopOpacity={0.2} />
+                  <stop offset="100%" stopColor="#3b82f6" stopOpacity={0} />
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+              <CartesianGrid
+                strokeDasharray="3 3"
+                stroke="var(--p-color-border-subdued, #f0f0f0)"
+                vertical={false}
+              />
               <XAxis
                 dataKey="month"
-                tick={{ fontSize: 12, fill: "#6b7280" }}
-                axisLine={{ stroke: "#e5e7eb" }}
-                tickLine={false}
-              />
-              <YAxis
-                tick={{ fontSize: 12, fill: "#6b7280" }}
+                tick={{ fontSize: 12, fill: "var(--p-color-text-subdued, #9ca3af)" }}
                 axisLine={false}
                 tickLine={false}
-                tickFormatter={(v) => `$${v.toLocaleString()}`}
+                dy={8}
               />
-              <Tooltip
-                formatter={(value: number | undefined) => [`$${(value ?? 0).toLocaleString("es-AR")}`, "Ingresos"]}
-                contentStyle={{
-                  borderRadius: 8,
-                  border: "1px solid #e5e7eb",
-                  boxShadow: "0 4px 6px -1px rgba(0,0,0,0.1)",
-                }}
+              <YAxis
+                tick={{ fontSize: 12, fill: "var(--p-color-text-subdued, #9ca3af)" }}
+                axisLine={false}
+                tickLine={false}
+                tickFormatter={(v) => `$${v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v}`}
               />
+              <Tooltip content={<CustomTooltip />} />
               <Area
                 type="monotone"
                 dataKey="revenue"
-                stroke="#2C6ECB"
-                strokeWidth={2}
-                fill="url(#revenueGradient)"
+                stroke="#3b82f6"
+                strokeWidth={2.5}
+                fill="url(#revenueGrad)"
+                dot={{ fill: "#3b82f6", strokeWidth: 0, r: 3 }}
+                activeDot={{ fill: "#3b82f6", strokeWidth: 2, stroke: "#fff", r: 5 }}
               />
             </AreaChart>
           </ResponsiveContainer>
         </div>
-      </BlockStack>
-    </Card>
+      )}
+    </div>
   );
 }

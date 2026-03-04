@@ -1,5 +1,4 @@
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
-import { Card, BlockStack, Text, InlineStack } from "@shopify/polaris";
+import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
 
 interface StatusDonutProps {
   data: { name: string; value: number; color: string }[];
@@ -7,79 +6,67 @@ interface StatusDonutProps {
 
 export function StatusDonut({ data }: StatusDonutProps) {
   const total = data.reduce((sum, d) => sum + d.value, 0);
-
-  if (total === 0) {
-    return (
-      <Card>
-        <BlockStack gap="400">
-          <Text as="h2" variant="headingMd">Distribucion por estado</Text>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: 200 }}>
-            <Text as="p" variant="bodyMd" tone="subdued">Sin datos</Text>
-          </div>
-        </BlockStack>
-      </Card>
-    );
-  }
+  const filtered = data.filter((d) => d.value > 0);
 
   return (
-    <Card>
-      <BlockStack gap="400">
-        <Text as="h2" variant="headingMd">Distribucion por estado</Text>
-        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-          <div style={{ width: 180, height: 180 }}>
+    <div className="chart-card">
+      <div className="chart-header">
+        <div>
+          <div className="chart-title">Distribucion por estado</div>
+          <div className="chart-subtitle">{total} suscripciones totales</div>
+        </div>
+      </div>
+
+      {total === 0 ? (
+        <div className="chart-empty">
+          <div className="chart-empty-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10" /><path d="M12 2a10 10 0 0 1 10 10" /><path d="M12 12l4-4" />
+            </svg>
+          </div>
+          <div className="chart-empty-text">Sin suscripciones todavia</div>
+        </div>
+      ) : (
+        <div className="donut-wrapper">
+          <div className="donut-chart-container">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
-                  data={data.filter((d) => d.value > 0)}
+                  data={filtered}
                   cx="50%"
                   cy="50%"
-                  innerRadius={50}
-                  outerRadius={75}
-                  paddingAngle={2}
+                  innerRadius={48}
+                  outerRadius={72}
+                  paddingAngle={filtered.length > 1 ? 3 : 0}
                   dataKey="value"
+                  strokeWidth={0}
                 >
-                  {data
-                    .filter((d) => d.value > 0)
-                    .map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
+                  {filtered.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color} />
+                  ))}
                 </Pie>
-                <Tooltip
-                  formatter={(value: number | undefined, name: string | undefined) => {
-                    const v = value ?? 0;
-                    return [`${v} (${total > 0 ? ((v / total) * 100).toFixed(0) : 0}%)`, name ?? ""];
-                  }}
-                  contentStyle={{
-                    borderRadius: 8,
-                    border: "1px solid #e5e7eb",
-                    boxShadow: "0 4px 6px -1px rgba(0,0,0,0.1)",
-                  }}
-                />
               </PieChart>
             </ResponsiveContainer>
+            <div className="donut-center">
+              <div className="donut-center-value">{total}</div>
+              <div className="donut-center-label">total</div>
+            </div>
           </div>
-          <BlockStack gap="200">
-            {data
-              .filter((d) => d.value > 0)
-              .map((item) => (
-                <InlineStack key={item.name} gap="200" blockAlign="center">
-                  <div
-                    style={{
-                      width: 10,
-                      height: 10,
-                      borderRadius: "50%",
-                      backgroundColor: item.color,
-                      flexShrink: 0,
-                    }}
-                  />
-                  <Text as="span" variant="bodySm">
-                    {item.name}: {item.value} ({total > 0 ? ((item.value / total) * 100).toFixed(0) : 0}%)
-                  </Text>
-                </InlineStack>
-              ))}
-          </BlockStack>
+
+          <div className="status-legend">
+            {data.map((item) => (
+              <div key={item.name} className="status-legend-item">
+                <div className="status-legend-dot" style={{ backgroundColor: item.color }} />
+                <span className="status-legend-label">{item.name}</span>
+                <span className="status-legend-value">{item.value}</span>
+                <span className="status-legend-pct">
+                  {total > 0 ? `${((item.value / total) * 100).toFixed(0)}%` : "0%"}
+                </span>
+              </div>
+            ))}
+          </div>
         </div>
-      </BlockStack>
-    </Card>
+      )}
+    </div>
   );
 }

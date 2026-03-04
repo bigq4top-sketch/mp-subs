@@ -1,0 +1,392 @@
+/* Dashboard — MP Suscripciones
+   Uses Polaris CSS custom properties for automatic dark/light mode support */
+
+/* ─── KPI Cards ─────────────────────────────────── */
+.kpi-card {
+  position: relative;
+  padding: 20px;
+  border-radius: var(--p-border-radius-300, 12px);
+  background: var(--p-color-bg-surface, #fff);
+  border: 1px solid var(--p-color-border-subdued, #e1e3e5);
+  overflow: hidden;
+  transition: box-shadow 0.2s ease, transform 0.15s ease;
+}
+
+.kpi-card:hover {
+  box-shadow: var(--p-shadow-300, 0 4px 16px rgba(0, 0, 0, 0.08));
+  transform: translateY(-1px);
+}
+
+.kpi-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+}
+
+.kpi-card[data-accent="green"]::before { background: linear-gradient(90deg, #10b981, #34d399); }
+.kpi-card[data-accent="blue"]::before { background: linear-gradient(90deg, #3b82f6, #60a5fa); }
+.kpi-card[data-accent="purple"]::before { background: linear-gradient(90deg, #8b5cf6, #a78bfa); }
+.kpi-card[data-accent="amber"]::before { background: linear-gradient(90deg, #f59e0b, #fbbf24); }
+
+.kpi-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--p-border-radius-200, 10px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.kpi-icon[data-accent="green"] { background: rgba(16, 185, 129, 0.12); color: #10b981; }
+.kpi-icon[data-accent="blue"] { background: rgba(59, 130, 246, 0.12); color: #3b82f6; }
+.kpi-icon[data-accent="purple"] { background: rgba(139, 92, 246, 0.12); color: #8b5cf6; }
+.kpi-icon[data-accent="amber"] { background: rgba(245, 158, 11, 0.12); color: #f59e0b; }
+
+.kpi-icon svg {
+  width: 20px;
+  height: 20px;
+}
+
+.kpi-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.kpi-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--p-color-text-subdued, #6b7280);
+  letter-spacing: 0.01em;
+}
+
+.kpi-value {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--p-color-text, #111);
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+
+.kpi-footer {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.kpi-trend {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 20px;
+}
+
+.kpi-trend[data-positive="true"] {
+  color: #059669;
+  background: rgba(16, 185, 129, 0.1);
+}
+
+.kpi-trend[data-positive="false"] {
+  color: #dc2626;
+  background: rgba(239, 68, 68, 0.1);
+}
+
+.kpi-trend svg {
+  width: 12px;
+  height: 12px;
+}
+
+.kpi-subtitle {
+  font-size: 12px;
+  color: var(--p-color-text-subdued, #9ca3af);
+}
+
+/* ─── Chart Cards ─────────────────────────────────── */
+.chart-card {
+  border-radius: var(--p-border-radius-300, 12px);
+  background: var(--p-color-bg-surface, #fff);
+  border: 1px solid var(--p-color-border-subdued, #e1e3e5);
+  padding: 20px;
+}
+
+.chart-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.chart-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--p-color-text, #111);
+}
+
+.chart-subtitle {
+  font-size: 12px;
+  color: var(--p-color-text-subdued, #6b7280);
+}
+
+.chart-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  gap: 12px;
+}
+
+.chart-empty-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--p-color-bg-surface-secondary, #f6f6f7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--p-color-text-subdued, #9ca3af);
+}
+
+.chart-empty-icon svg {
+  width: 24px;
+  height: 24px;
+}
+
+.chart-empty-text {
+  font-size: 13px;
+  color: var(--p-color-text-subdued, #9ca3af);
+  text-align: center;
+}
+
+/* ─── Activity Feed ─────────────────────────────── */
+.activity-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--p-color-border-subdued, #f1f1f1);
+}
+
+.activity-item:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.activity-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-top: 6px;
+}
+
+.activity-dot[data-type="created"] { background: #3b82f6; }
+.activity-dot[data-type="authorized"] { background: #10b981; }
+.activity-dot[data-type="payment"] { background: #10b981; box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15); }
+.activity-dot[data-type="cancelled"] { background: #ef4444; }
+.activity-dot[data-type="paused"] { background: #f59e0b; }
+.activity-dot[data-type="payment_failed"] { background: #ef4444; box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.15); }
+
+.activity-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.activity-text {
+  font-size: 13px;
+  color: var(--p-color-text, #111);
+  line-height: 1.4;
+}
+
+.activity-time {
+  font-size: 12px;
+  color: var(--p-color-text-subdued, #9ca3af);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* ─── City Bars ────────────────────────────────── */
+.city-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.city-rank {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  background: var(--p-color-bg-surface-secondary, #f3f4f6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--p-color-text-subdued, #6b7280);
+  flex-shrink: 0;
+}
+
+.city-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.city-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--p-color-text, #111);
+  margin-bottom: 4px;
+}
+
+.city-bar-track {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--p-color-bg-surface-secondary, #e5e7eb);
+  overflow: hidden;
+}
+
+.city-bar-fill {
+  height: 100%;
+  border-radius: 2px;
+  background: linear-gradient(90deg, #3b82f6, #60a5fa);
+  transition: width 0.5s ease;
+}
+
+.city-count {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--p-color-text, #111);
+  flex-shrink: 0;
+}
+
+/* ─── Status Legend ────────────────────────────── */
+.status-legend {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.status-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.status-legend-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+.status-legend-label {
+  font-size: 13px;
+  color: var(--p-color-text, #111);
+  flex: 1;
+}
+
+.status-legend-value {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--p-color-text, #111);
+}
+
+.status-legend-pct {
+  font-size: 12px;
+  color: var(--p-color-text-subdued, #9ca3af);
+  width: 40px;
+  text-align: right;
+}
+
+/* ─── Donut Center ────────────────────────────── */
+.donut-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+.donut-chart-container {
+  width: 160px;
+  height: 160px;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.donut-center {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+}
+
+.donut-center-value {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--p-color-text, #111);
+  line-height: 1;
+}
+
+.donut-center-label {
+  font-size: 11px;
+  color: var(--p-color-text-subdued, #9ca3af);
+  margin-top: 2px;
+}
+
+/* ─── Dashboard Header ────────────────────────── */
+.dashboard-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.dashboard-greeting {
+  font-size: 14px;
+  color: var(--p-color-text-subdued, #6b7280);
+}
+
+/* ─── Recharts tooltip dark mode ──────────────── */
+.custom-tooltip {
+  background: var(--p-color-bg-surface, #fff) !important;
+  border: 1px solid var(--p-color-border-subdued, #e5e7eb) !important;
+  border-radius: 8px !important;
+  box-shadow: var(--p-shadow-200, 0 2px 8px rgba(0, 0, 0, 0.08)) !important;
+  padding: 10px 14px !important;
+}
+
+.custom-tooltip-label {
+  font-size: 12px;
+  color: var(--p-color-text-subdued, #9ca3af);
+  margin-bottom: 4px;
+}
+
+.custom-tooltip-value {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--p-color-text, #111);
+}
+
+/* ─── Section dividers ────────────────────────── */
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 2px;
+}
+
+.section-header-icon {
+  width: 20px;
+  height: 20px;
+  color: var(--p-color-text-subdued, #9ca3af);
+}

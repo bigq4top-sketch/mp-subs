@@ -1,5 +1,3 @@
-import { Card, BlockStack, Text, InlineStack } from "@shopify/polaris";
-
 interface ActivityEvent {
   id: string;
   type: string;
@@ -10,15 +8,6 @@ interface ActivityEvent {
 interface ActivityFeedProps {
   events: ActivityEvent[];
 }
-
-const EVENT_ICONS: Record<string, { icon: string; color: string }> = {
-  created: { icon: "🆕", color: "#2C6ECB" },
-  authorized: { icon: "✅", color: "#22c55e" },
-  payment: { icon: "💰", color: "#16a34a" },
-  cancelled: { icon: "❌", color: "#ef4444" },
-  paused: { icon: "⏸️", color: "#f59e0b" },
-  payment_failed: { icon: "⚠️", color: "#ef4444" },
-};
 
 function timeAgo(dateStr: string): string {
   const now = new Date();
@@ -36,51 +25,37 @@ function timeAgo(dateStr: string): string {
 }
 
 export function ActivityFeed({ events }: ActivityFeedProps) {
-  if (events.length === 0) {
-    return (
-      <Card>
-        <BlockStack gap="400">
-          <Text as="h2" variant="headingMd">Actividad reciente</Text>
-          <Text as="p" variant="bodyMd" tone="subdued">
-            Sin actividad todavia
-          </Text>
-        </BlockStack>
-      </Card>
-    );
-  }
-
   return (
-    <Card>
-      <BlockStack gap="400">
-        <Text as="h2" variant="headingMd">Actividad reciente</Text>
-        <BlockStack gap="300">
-          {events.map((event) => {
-            const config = EVENT_ICONS[event.type] || { icon: "📋", color: "#6b7280" };
-            return (
-              <div
-                key={event.id}
-                style={{
-                  display: "flex",
-                  alignItems: "flex-start",
-                  gap: 10,
-                  padding: "8px 0",
-                  borderBottom: "1px solid #f3f4f6",
-                }}
-              >
-                <span style={{ fontSize: 16, flexShrink: 0, marginTop: 1 }}>{config.icon}</span>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <Text as="p" variant="bodySm">
-                    {event.description}
-                  </Text>
-                </div>
-                <Text as="span" variant="bodySm" tone="subdued">
-                  {timeAgo(event.date)}
-                </Text>
+    <div className="chart-card">
+      <div className="chart-header">
+        <div>
+          <div className="chart-title">Actividad reciente</div>
+          <div className="chart-subtitle">Ultimos eventos</div>
+        </div>
+      </div>
+
+      {events.length === 0 ? (
+        <div className="chart-empty">
+          <div className="chart-empty-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
+            </svg>
+          </div>
+          <div className="chart-empty-text">Sin actividad todavia</div>
+        </div>
+      ) : (
+        <div>
+          {events.map((event) => (
+            <div key={event.id} className="activity-item">
+              <div className="activity-dot" data-type={event.type} />
+              <div className="activity-content">
+                <div className="activity-text">{event.description}</div>
               </div>
-            );
-          })}
-        </BlockStack>
-      </BlockStack>
-    </Card>
+              <span className="activity-time">{timeAgo(event.date)}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
