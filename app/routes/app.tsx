@@ -12,10 +12,19 @@ export const links = () => [{ rel: "stylesheet", href: polarisStyles }];
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { billing } = await authenticate.admin(request);
 
-  await billing.require({
-    plans: [USAGE_PLAN],
-    onFailure: async () => billing.request({ plan: USAGE_PLAN }),
-  });
+  try {
+    await billing.require({
+      plans: [USAGE_PLAN],
+      onFailure: async () => billing.request({ plan: USAGE_PLAN }),
+    });
+  } catch (error) {
+    // Billing no disponible en tiendas de desarrollo / custom apps
+    if (error instanceof Error && error.message?.includes("Billing")) {
+      console.log("Billing not available for this store, skipping");
+    } else {
+      throw error;
+    }
+  }
 
   return { apiKey: process.env.SHOPIFY_API_KEY || "" };
 };
