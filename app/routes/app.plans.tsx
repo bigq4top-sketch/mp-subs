@@ -32,11 +32,68 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
   const plans = await db.plan.findMany({
     where: { shop: session.shop },
-    include: { _count: { select: { subscriptions: true } } },
+    include: {
+      _count: { select: { subscriptions: true } },
+      subscriptions: {
+        where: { status: "authorized" },
+        select: { id: true },
+      },
+    },
     orderBy: { createdAt: "desc" },
   });
 
-  return json({ plans });
+  // Revenue por plan (sum de payment events)
+  const planRevenue = await db.subscriptionEvent.groupBy({
+    by: ["subscriptionId"],
+    where: { shop: session.shop, type: "payment" },
+    _sum: { amount: true },
+  });
+
+  // Map subscription IDs to plan IDs
+  const subToPlan: Record<string, string> = {};
+  for (const plan of plans) {
+    for (const sub of plan.subscriptions) {
+      subToPlan[sub.id] = plan.id;
+    }
+  }
+
+  const revenueByPlan: Record<string, number> = {};
+  for (const entry of planRevenue) {
+    const planId = subToPlan[entry.subscriptionId];
+    if (planId) {
+      revenueByPlan[planId] = (revenueByPlan[planId] || 0) + (entry._sum.amount || 0);
+    }
+  }
+
+  // Find most popular plan (most active subs)
+  let popularPlanId = "";
+  let maxActiveSubs = 0;
+  for (const plan of plans) {
+    const activeCount = plan.subscriptions.length;
+    if (activeCount > maxActiveSubs) {
+      maxActiveSubs = activeCount;
+      popularPlanId = plan.id;
+    }
+  }
+
+  const plansData = plans.map((p) => ({
+    id: p.id,
+    name: p.name,
+    description: p.description,
+    amount: p.amount,
+    originalPrice: p.originalPrice,
+    quantity: p.quantity,
+    currency: p.currency,
+    frequencyType: p.frequencyType,
+    frequency: p.frequency,
+    active: p.active,
+    subscriberCount: p._count.subscriptions,
+    activeSubCount: p.subscriptions.length,
+    revenue: revenueByPlan[p.id] || 0,
+    isPopular: p.id === popularPlanId && maxActiveSubs > 0,
+  }));
+
+  return json({ plans: plansData });
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
@@ -301,6 +358,7 @@ export default function PlansPage() {
                     { title: "Descuento" },
                     { title: "Frecuencia" },
                     { title: "Suscriptores" },
+                    { title: "Revenue" },
                     { title: "Estado" },
                     { title: "Acciones" },
                   ]}
@@ -325,9 +383,14 @@ export default function PlansPage() {
                         position={index}
                       >
                         <IndexTable.Cell>
-                          <Text variant="bodyMd" fontWeight="bold" as="span">
-                            {plan.name}
-                          </Text>
+                          <InlineStack gap="200" blockAlign="center">
+                            <Text variant="bodyMd" fontWeight="bold" as="span">
+                              {plan.name}
+                            </Text>
+                            {plan.isPopular && (
+                              <Badge tone="info">Popular</Badge>
+                            )}
+                          </InlineStack>
                         </IndexTable.Cell>
                         <IndexTable.Cell>
                           x{plan.quantity}
@@ -347,7 +410,17 @@ export default function PlansPage() {
                           {freqLabel[plan.frequencyType] || plan.frequencyType}
                         </IndexTable.Cell>
                         <IndexTable.Cell>
-                          {plan._count.subscriptions}
+                          <BlockStack gap="100">
+                            <Text variant="bodyMd" as="span">{plan.subscriberCount}</Text>
+                            <Text variant="bodySm" tone="subdued" as="span">
+                              {plan.activeSubCount} activas
+                            </Text>
+                          </BlockStack>
+                        </IndexTable.Cell>
+                        <IndexTable.Cell>
+                          <Text variant="bodyMd" as="span">
+                            ${plan.revenue.toLocaleString()} {plan.currency}
+                          </Text>
                         </IndexTable.Cell>
                         <IndexTable.Cell>
                           <Badge tone={plan.active ? "success" : undefined}>

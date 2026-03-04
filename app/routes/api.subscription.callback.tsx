@@ -44,6 +44,24 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
         });
         subscription = { ...subscription, status: "authorized" };
 
+        // Registrar eventos "authorized" y "payment" (primer pago)
+        await db.subscriptionEvent.createMany({
+          data: [
+            {
+              shop: subscription.shop,
+              subscriptionId: subscription.id,
+              type: "authorized",
+            },
+            {
+              shop: subscription.shop,
+              subscriptionId: subscription.id,
+              type: "payment",
+              amount: subscription.plan.amount,
+              metadata: JSON.stringify({ source: "callback", planName: subscription.plan.name }),
+            },
+          ],
+        });
+
         // Create Shopify order if not already created
         if (!subscription.shopifyOrderId) {
           try {

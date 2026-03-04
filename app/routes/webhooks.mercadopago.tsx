@@ -184,6 +184,39 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       },
     });
 
+    // Registrar evento según el cambio de estado
+    if (newStatus === "authorized" && subscription.status !== "authorized") {
+      await db.subscriptionEvent.createMany({
+        data: [
+          { shop: subscription.shop, subscriptionId: subscription.id, type: "authorized" },
+          {
+            shop: subscription.shop,
+            subscriptionId: subscription.id,
+            type: "payment",
+            amount: subscription.plan.amount,
+            metadata: JSON.stringify({ source: "webhook", planName: subscription.plan.name }),
+          },
+        ],
+      });
+    } else if (newStatus === "cancelled" && subscription.status !== "cancelled") {
+      await db.subscriptionEvent.create({
+        data: {
+          shop: subscription.shop,
+          subscriptionId: subscription.id,
+          type: "cancelled",
+          metadata: JSON.stringify({ previousStatus: subscription.status }),
+        },
+      });
+    } else if (newStatus === "paused" && subscription.status !== "paused") {
+      await db.subscriptionEvent.create({
+        data: {
+          shop: subscription.shop,
+          subscriptionId: subscription.id,
+          type: "paused",
+        },
+      });
+    }
+
     // First payment: subscription just became authorized
     if (newStatus === "authorized" && subscription.status !== "authorized") {
       console.log(
@@ -216,6 +249,17 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       subscription.status === "authorized" &&
       payload.type === "subscription_authorized_payment"
     ) {
+      // Registrar evento de pago recurrente
+      await db.subscriptionEvent.create({
+        data: {
+          shop: subscription.shop,
+          subscriptionId: subscription.id,
+          type: "payment",
+          amount: subscription.plan.amount,
+          metadata: JSON.stringify({ source: "webhook", recurring: true, planName: subscription.plan.name }),
+        },
+      });
+
       console.log(
         `Recurring payment for subscription ${subscription.id}. Creating new Shopify order.`,
       );

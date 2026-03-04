@@ -74,7 +74,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       trialDays: plan.trialDays,
     });
 
-    await db.subscription.create({
+    const subscription = await db.subscription.create({
       data: {
         shop,
         planId: plan.id,
@@ -88,6 +88,17 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         shippingCity: city,
         shippingProvince: province || "",
         shippingPostalCode: postalCode || "",
+      },
+    });
+
+    // Registrar evento "created"
+    await db.subscriptionEvent.create({
+      data: {
+        shop,
+        subscriptionId: subscription.id,
+        type: "created",
+        amount: plan.amount,
+        metadata: JSON.stringify({ planName: plan.name, email }),
       },
     });
 

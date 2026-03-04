@@ -84,10 +84,26 @@ model Subscription {
   shippingProvince  String   @default("")
   shippingPostalCode String  @default("")
   nextBillingDate   DateTime?
+  events            SubscriptionEvent[]
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
   @@index([shop])
   @@index([mpPreapprovalId])
   @@index([status])
+}
+
+model SubscriptionEvent {
+  id             String       @id @default(cuid())
+  shop           String
+  subscriptionId String
+  subscription   Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  type           String       // "created" | "authorized" | "payment" | "cancelled" | "paused" | "payment_failed"
+  amount         Float?
+  metadata       String?      // JSON extra
+  createdAt      DateTime     @default(now())
+
+  @@index([shop, createdAt])
+  @@index([subscriptionId])
+  @@index([type, createdAt])
 }
