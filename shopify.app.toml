@@ -2,7 +2,7 @@
 
 client_id = "f9ee994c0f517fdde82cf07b5ed5013a"
 name = "MP Suscripciones"
-application_url = "https://YOUR-APP.up.railway.app"
+application_url = "https://mp-subs-production.up.railway.app"
 embedded = true
 
 [build]
@@ -40,7 +40,7 @@ scopes = "read_customers,write_customers,read_orders,write_orders,write_draft_or
 
 [auth]
 redirect_urls = [
-  "https://YOUR-APP.up.railway.app/auth/callback",
-  "https://YOUR-APP.up.railway.app/auth/shopify/callback",
-  "https://YOUR-APP.up.railway.app/api/auth"
+  "https://mp-subs-production.up.railway.app/auth/callback",
+  "https://mp-subs-production.up.railway.app/auth/shopify/callback",
+  "https://mp-subs-production.up.railway.app/api/auth"
 ]
