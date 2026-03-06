@@ -107,3 +107,53 @@ model SubscriptionEvent {
   @@index([subscriptionId])
   @@index([type, createdAt])
 }
+
+model Bundle {
+  id            String       @id @default(cuid())
+  shop          String
+  name          String
+  title         String       @default("")
+  type          String       @default("quantity_break") // quantity_break, multi_product, bxgy
+  active        Boolean      @default(true)
+  startDate     DateTime?
+  endDate       DateTime?
+  visibility    String       @default("all") // all, selected_products, selected_collections
+  productIds    String       @default("[]") // JSON array
+  collectionIds String       @default("[]") // JSON array
+  settings      String       @default("{}") // JSON extra settings
+  tiers         BundleTier[]
+  stats         BundleStats[]
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  @@index([shop, active])
+}
+
+model BundleTier {
+  id              String  @id @default(cuid())
+  bundleId        String
+  bundle          Bundle  @relation(fields: [bundleId], references: [id], onDelete: Cascade)
+  name            String
+  quantity        Int
+  price           Float
+  compareAtPrice  Float   @default(0)
+  discountPercent Float   @default(0)
+  isPopular       Boolean @default(false)
+  position        Int     @default(0)
+
+  @@index([bundleId])
+}
+
+model BundleStats {
+  id          String   @id @default(cuid())
+  bundleId    String
+  bundle      Bundle   @relation(fields: [bundleId], references: [id], onDelete: Cascade)
+  shop        String
+  visitors    Int      @default(0)
+  conversions Int      @default(0)
+  revenue     Float    @default(0)
+  date        DateTime @default(now())
+
+  @@index([bundleId, date])
+  @@index([shop, date])
+}

@@ -29,6 +29,7 @@ export default function App() {
           Dashboard
         </Link>
         <Link to="/app/plans">Planes</Link>
+        <Link to="/app/bundles">Packs</Link>
         <Link to="/app/subscriptions">Suscripciones</Link>
         <Link to="/app/settings">Settings</Link>
       </NavMenu>

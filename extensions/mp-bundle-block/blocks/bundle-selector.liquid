@@ -1,0 +1,494 @@
+{% comment %}
+  MP Bundle Block - Kaching-style tier selector with quantity breaks
+{% endcomment %}
+
+<div id="mp-bundle-block"
+  data-shop="{{ shop.permanent_domain }}"
+  data-app-url="{{ block.settings.app_url }}"
+  data-product-id="{{ product.id }}"
+  data-variant-id="{{ product.selected_or_first_available_variant.id }}"
+  data-bundle-id="{{ block.settings.bundle_id }}">
+  <div class="mpb-loading">Cargando packs...</div>
+</div>
+
+<style>
+  #mp-bundle-block {
+    margin: {{ block.settings.margin_top }}px 0 {{ block.settings.margin_bottom }}px;
+    font-family: inherit;
+    max-width: 520px;
+  }
+
+  .mpb-loading { color: #555; font-size: 14px; padding: 16px 0; }
+  .mpb-error { color: #d72c0d; font-size: 14px; padding: 16px 0; }
+
+  .mpb-title {
+    font-size: 20px;
+    font-weight: 800;
+    margin-bottom: 16px;
+    color: {{ block.settings.text_color }};
+    text-align: center;
+  }
+
+  /* Tier cards */
+  .mpb-tiers {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .mpb-tier {
+    border: 2px solid #e5e5e5;
+    border-radius: 12px;
+    padding: 18px 20px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+    background: #fff;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .mpb-tier:hover {
+    border-color: {{ block.settings.accent_color }};
+    box-shadow: 0 2px 8px {{ block.settings.accent_color }}15;
+  }
+
+  .mpb-tier.selected {
+    border-color: {{ block.settings.accent_color }};
+    background: {{ block.settings.accent_color }}06;
+    box-shadow: 0 0 0 1px {{ block.settings.accent_color }}30;
+  }
+
+  /* Radio */
+  .mpb-radio {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    border: 2px solid #ccc;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: border-color 0.2s;
+  }
+
+  .mpb-tier.selected .mpb-radio {
+    border-color: {{ block.settings.accent_color }};
+  }
+
+  .mpb-radio-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: {{ block.settings.accent_color }};
+    display: none;
+    transition: transform 0.15s;
+  }
+
+  .mpb-tier.selected .mpb-radio-dot {
+    display: block;
+  }
+
+  /* Tier content */
+  .mpb-tier-content {
+    flex: 1;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .mpb-tier-left {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .mpb-tier-name {
+    font-weight: 700;
+    font-size: 16px;
+    color: #111;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .mpb-tier-qty {
+    font-size: 13px;
+    color: #666;
+  }
+
+  .mpb-tier-right {
+    text-align: right;
+    flex-shrink: 0;
+  }
+
+  .mpb-tier-price {
+    font-weight: 800;
+    font-size: 20px;
+    color: #111;
+  }
+
+  .mpb-tier-compare {
+    font-size: 13px;
+    color: #999;
+    text-decoration: line-through;
+  }
+
+  .mpb-tier-perunit {
+    font-size: 12px;
+    color: #888;
+  }
+
+  /* Badges */
+  .mpb-badge-popular {
+    position: absolute;
+    top: -11px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: {{ block.settings.accent_color }};
+    color: #fff;
+    font-size: 11px;
+    font-weight: 800;
+    padding: 3px 14px;
+    border-radius: 20px;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+  }
+
+  .mpb-badge-save {
+    display: inline-block;
+    background: {{ block.settings.badge_color }};
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 4px;
+    white-space: nowrap;
+  }
+
+  /* CTA Button */
+  .mpb-cta {
+    width: 100%;
+    padding: 16px;
+    margin-top: 16px;
+    background: {{ block.settings.button_color }};
+    color: {{ block.settings.button_text_color }};
+    border: none;
+    border-radius: 10px;
+    font-size: 17px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: opacity 0.2s, transform 0.1s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+
+  .mpb-cta:hover { opacity: 0.92; }
+  .mpb-cta:active { transform: scale(0.98); }
+  .mpb-cta:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .mpb-trust {
+    text-align: center;
+    margin-top: 10px;
+    font-size: 12px;
+    color: #777;
+  }
+
+  /* Success animation */
+  .mpb-cta.mpb-success {
+    background: #10b981;
+    pointer-events: none;
+  }
+
+  .mpb-spinner {
+    animation: mpb-spin 0.8s linear infinite;
+    width: 20px;
+    height: 20px;
+  }
+
+  @keyframes mpb-spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+
+  /* Mobile responsive */
+  @media (max-width: 480px) {
+    .mpb-tier { padding: 14px 14px; gap: 10px; }
+    .mpb-tier-price { font-size: 18px; }
+    .mpb-tier-name { font-size: 15px; }
+  }
+</style>
+
+<script>
+(function() {
+  var container = document.getElementById('mp-bundle-block');
+  var shop = container.dataset.shop;
+  var appUrl = (container.dataset.appUrl || '').replace(/\/+$/, '');
+  var variantId = container.dataset.variantId;
+  var bundleIdSetting = container.dataset.bundleId || '';
+  var productId = container.dataset.productId || '';
+
+  if (!appUrl) {
+    container.innerHTML = '<p class="mpb-error">Configura la App URL en los ajustes del bloque.</p>';
+    return;
+  }
+
+  function esc(str) {
+    var d = document.createElement('div');
+    d.textContent = str;
+    return d.innerHTML;
+  }
+
+  var selectedTier = null;
+  var bundleData = null;
+
+  var apiUrl = appUrl + '/api/bundles?shop=' + encodeURIComponent(shop);
+  if (bundleIdSetting) {
+    apiUrl += '&bundleId=' + encodeURIComponent(bundleIdSetting);
+  } else if (productId) {
+    apiUrl += '&productId=' + encodeURIComponent(productId);
+  }
+
+  fetch(apiUrl)
+    .then(function(r) {
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.json();
+    })
+    .then(function(data) {
+      var bundle = data.bundle || (data.bundles && data.bundles[0]);
+      if (!bundle || !bundle.tiers || bundle.tiers.length === 0) {
+        container.innerHTML = '';
+        return;
+      }
+
+      bundleData = bundle;
+      var html = '';
+
+      html += '<div class="mpb-title">' + esc(bundle.title || bundle.name) + '</div>';
+      html += '<div class="mpb-tiers">';
+
+      bundle.tiers.forEach(function(tier, i) {
+        var isFirst = i === 0;
+        var cls = 'mpb-tier' + (isFirst ? ' selected' : '');
+        if (isFirst) selectedTier = tier;
+
+        html += '<div class="' + cls + '" data-tier-idx="' + i + '" role="radio" aria-checked="' + (isFirst ? 'true' : 'false') + '" tabindex="0">';
+
+        if (tier.isPopular) {
+          html += '<div class="mpb-badge-popular">{{ block.settings.popular_text }}</div>';
+        }
+
+        html += '<div class="mpb-radio"><div class="mpb-radio-dot"></div></div>';
+        html += '<div class="mpb-tier-content">';
+        html += '<div class="mpb-tier-left">';
+        html += '<div class="mpb-tier-name">';
+        html += esc(tier.name || ('x' + tier.quantity));
+        if (tier.discountPercent > 0) {
+          html += ' <span class="mpb-badge-save">{{ block.settings.save_text }} ' + tier.discountPercent + '%</span>';
+        }
+        html += '</div>';
+        html += '<div class="mpb-tier-qty">' + tier.quantity + ' ' + (tier.quantity === 1 ? 'unidad' : 'unidades') + '</div>';
+        html += '</div>';
+
+        html += '<div class="mpb-tier-right">';
+        if (tier.compareAtPrice > 0) {
+          html += '<div class="mpb-tier-compare">$' + tier.compareAtPrice.toLocaleString() + '</div>';
+        }
+        html += '<div class="mpb-tier-price">$' + tier.price.toLocaleString() + '</div>';
+        if (tier.quantity > 1 && tier.price > 0) {
+          html += '<div class="mpb-tier-perunit">$' + Math.round(tier.price / tier.quantity).toLocaleString() + ' c/u</div>';
+        }
+        html += '</div>';
+
+        html += '</div>';
+        html += '</div>';
+      });
+
+      html += '</div>';
+      html += '<button class="mpb-cta" id="mpb-cta">{{ block.settings.button_text }}</button>';
+      html += '<div class="mpb-trust">{{ block.settings.trust_text }}</div>';
+
+      container.innerHTML = html;
+
+      /* Track view */
+      fetch(appUrl + '/api/bundles/stats', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ shop: shop, bundleId: bundle.id, event: 'view' })
+      }).catch(function() {});
+
+      /* Selection logic */
+      var allTiers = container.querySelectorAll('.mpb-tier');
+      var cta = document.getElementById('mpb-cta');
+
+      function selectTier(el) {
+        allTiers.forEach(function(t) {
+          t.classList.remove('selected');
+          t.setAttribute('aria-checked', 'false');
+        });
+        el.classList.add('selected');
+        el.setAttribute('aria-checked', 'true');
+        var idx = parseInt(el.dataset.tierIdx);
+        selectedTier = bundle.tiers[idx];
+      }
+
+      allTiers.forEach(function(el) {
+        el.addEventListener('click', function() { selectTier(el); });
+        el.addEventListener('keydown', function(e) {
+          if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectTier(el); }
+        });
+      });
+
+      /* Add to Cart */
+      cta.addEventListener('click', function() {
+        if (!selectedTier) return;
+
+        var btn = this;
+        btn.disabled = true;
+        btn.innerHTML = '<svg class="mpb-spinner" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" opacity=".3"/><path d="M12 2v4"/></svg>';
+
+        var qty = selectedTier.quantity || 1;
+
+        /* Track conversion */
+        fetch(appUrl + '/api/bundles/stats', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            shop: shop,
+            bundleId: bundle.id,
+            event: 'conversion',
+            revenue: selectedTier.price
+          })
+        }).catch(function() {});
+
+        /* Add to Shopify cart */
+        fetch('/cart/add.js', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            items: [{ id: parseInt(variantId), quantity: qty }]
+          })
+        })
+        .then(function(r) {
+          if (!r.ok) throw new Error('Error al agregar al carrito');
+          return r.json();
+        })
+        .then(function() {
+          btn.classList.add('mpb-success');
+          btn.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Agregado!';
+          setTimeout(function() {
+            btn.classList.remove('mpb-success');
+            btn.disabled = false;
+            btn.textContent = '{{ block.settings.button_text }}';
+          }, 2000);
+        })
+        .catch(function(err) {
+          btn.disabled = false;
+          btn.textContent = '{{ block.settings.button_text }}';
+          console.error('Bundle add to cart error:', err);
+        });
+      });
+    })
+    .catch(function(err) {
+      container.innerHTML = '<p class="mpb-error">No se pudieron cargar los packs.</p>';
+      console.error('Bundle load error:', err);
+    });
+})();
+</script>
+
+{% schema %}
+{
+  "name": "MP Pack / Bundle",
+  "target": "section",
+  "settings": [
+    {
+      "type": "text",
+      "id": "app_url",
+      "label": "App URL",
+      "info": "URL de tu app (ej: https://xxx.trycloudflare.com)"
+    },
+    {
+      "type": "text",
+      "id": "bundle_id",
+      "label": "Bundle ID (opcional)",
+      "info": "Si esta vacio, muestra el primer bundle activo para este producto"
+    },
+    {
+      "type": "text",
+      "id": "popular_text",
+      "label": "Texto 'Mas popular'",
+      "default": "MAS POPULAR"
+    },
+    {
+      "type": "text",
+      "id": "save_text",
+      "label": "Texto 'Ahorra'",
+      "default": "AHORRA"
+    },
+    {
+      "type": "text",
+      "id": "button_text",
+      "label": "Texto del boton",
+      "default": "AGREGAR AL CARRITO"
+    },
+    {
+      "type": "text",
+      "id": "trust_text",
+      "label": "Texto de confianza",
+      "default": "Envio gratis en packs. Entrega en 24-48hs."
+    },
+    {
+      "type": "color",
+      "id": "accent_color",
+      "label": "Color de acento",
+      "default": "#2E7D32"
+    },
+    {
+      "type": "color",
+      "id": "text_color",
+      "label": "Color del texto",
+      "default": "#111111"
+    },
+    {
+      "type": "color",
+      "id": "badge_color",
+      "label": "Color badge descuento",
+      "default": "#e53935"
+    },
+    {
+      "type": "color",
+      "id": "button_color",
+      "label": "Color del boton",
+      "default": "#2E7D32"
+    },
+    {
+      "type": "color",
+      "id": "button_text_color",
+      "label": "Color texto del boton",
+      "default": "#ffffff"
+    },
+    {
+      "type": "range",
+      "id": "margin_top",
+      "label": "Margen superior",
+      "min": 0,
+      "max": 60,
+      "step": 4,
+      "default": 20
+    },
+    {
+      "type": "range",
+      "id": "margin_bottom",
+      "label": "Margen inferior",
+      "min": 0,
+      "max": 60,
+      "step": 4,
+      "default": 20
+    }
+  ]
+}
+{% endschema %}
